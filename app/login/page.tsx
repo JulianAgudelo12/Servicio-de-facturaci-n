@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../lib/supabase/client";
 
@@ -10,10 +10,41 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const supabase = createSupabaseBrowserClient();
+  const [configError, setConfigError] = useState("");
+
+  // Crear cliente de Supabase de forma segura
+  const supabase = (() => {
+    try {
+      return createSupabaseBrowserClient();
+    } catch (err: any) {
+      return null;
+    }
+  })();
+
+  // Verificar configuración al montar
+  useEffect(() => {
+    if (!supabase) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setConfigError(
+          "Error de configuración: Las variables de entorno de Supabase no están configuradas."
+        );
+      } else {
+        setConfigError("Error al inicializar Supabase. Verifica la configuración.");
+      }
+    }
+  }, [supabase]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    
+    if (!supabase) {
+      setError("No se puede conectar con el servidor. Verifica la configuración.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -94,7 +125,14 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Error */}
+            {/* Error de configuración */}
+            {configError && (
+              <div className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+                <strong>Advertencia:</strong> {configError}
+              </div>
+            )}
+
+            {/* Error de login */}
             {error && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
                 {error}
@@ -104,7 +142,7 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !!configError || !supabase}
               className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Iniciando sesión..." : "Iniciar sesión"}
