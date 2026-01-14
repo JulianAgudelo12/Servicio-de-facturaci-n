@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Tabs from "@/components/admin/Tabs";
-import FiltersBar, { ServiceFilters } from "@/components/admin/FiltersBar";
-import ServicesTable, { ServiceRow } from "@/components/admin/ServicesTable";
-import NewServiceModal, { ServiceFormData } from "@/components/admin/NewServiceModal";
+import Tabs from "../../components/admin/Tabs";
+import FiltersBar, { ServiceFilters } from "../../components/admin/FiltersBar";
+import ServicesTable, { ServiceRow } from "../../components/admin/ServicesTable";
+import NewServiceModal, { ServiceFormData } from "../../components/admin/NewServiceModal";
 
 type TabKey = "servicios" | "pendientes" | "fabricacion" | "garantia" | "entregado";
 

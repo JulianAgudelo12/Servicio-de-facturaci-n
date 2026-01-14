@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useAuth } from "../../lib/hooks/useAuth";
 
 export default function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, signOut } = useAuth();

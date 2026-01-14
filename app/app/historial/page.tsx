@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import ServicesTable, { ServiceRow } from "@/components/admin/ServicesTable";
+import ServicesTable, { ServiceRow } from "../../../components/admin/ServicesTable";
 
 function formatDateDDMMYYYY(dateStr: string) {
   const [yyyy, mm, dd] = String(dateStr).split("-");
