@@ -16,6 +16,8 @@ function formatDateDDMMYYYY(dateStr: string) {
 }
 
 function mapDbToRow(s: any): ServiceRow {
+  const abono = Number(s.abono ?? 0);
+  const finalCost = Number(s.costo_final ?? 0);
   return {
     code: s.code,
     client: s.cliente,
@@ -24,7 +26,10 @@ function mapDbToRow(s: any): ServiceRow {
     description: s.descripcion,
     material: s.material,
     status: s.estado,
-    net: "CO$ 0",
+    abono: Number.isFinite(abono) ? abono : 0,
+    abonoPaid: Boolean(s.abono_pagado),
+    finalCost: Number.isFinite(finalCost) ? finalCost : 0,
+    finalPaid: Boolean(s.costo_final_pagado),
     date: formatDateDDMMYYYY(s.fecha),
   };
 }
@@ -170,6 +175,10 @@ export default function AdminHome() {
       fd.append("agente", form.agente);
       fd.append("almacen", form.almacen);
       fd.append("prioridad", form.prioridad);
+      fd.append("abono", form.abono);
+      fd.append("costo_final", form.costoFinal);
+      fd.append("abono_pagado", String(form.abonoPagado));
+      fd.append("costo_final_pagado", String(form.costoFinalPagado));
 
       if (form.cotizacionFile) fd.append("cotizacionFile", form.cotizacionFile);
 

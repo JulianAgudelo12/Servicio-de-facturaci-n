@@ -20,6 +20,10 @@ export type ServiceFormData = {
   agente: string;
   almacen: string;
   prioridad: "24 horas" | "48 horas" | "72 horas" | "Normal";
+  abono: string; // money as string (se parsea en API)
+  abonoPagado: boolean;
+  costoFinal: string; // money as string (se parsea en API)
+  costoFinalPagado: boolean;
   cotizacionFile: File | null;
 };
 
@@ -47,6 +51,10 @@ export default function NewServiceModal({ open, onClose, onSubmit }: Props) {
     agente: "",
     almacen: "",
     prioridad: "24 horas",
+    abono: "",
+    abonoPagado: false,
+    costoFinal: "",
+    costoFinalPagado: false,
     cotizacionFile: null,
   });
 
@@ -76,6 +84,20 @@ export default function NewServiceModal({ open, onClose, onSubmit }: Props) {
     if (!data.agente.trim()) e.agente = "Agente es obligatorio";
     if (!data.almacen.trim()) e.almacen = "Almacén es obligatorio";
     if (!data.prioridad) e.prioridad = "Prioridad es obligatoria";
+    if (!String(data.costoFinal).trim()) e.costoFinal = "Costo final es obligatorio";
+
+    const parseMoney = (v: string) => {
+      const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+      if (!normalized) return 0;
+      return Number(normalized);
+    };
+    const abonoNum = parseMoney(data.abono);
+    const finalNum = parseMoney(data.costoFinal);
+    if (!Number.isFinite(finalNum) || finalNum < 0) e.costoFinal = "Costo final inválido";
+    if (String(data.abono).trim() && (!Number.isFinite(abonoNum) || abonoNum < 0)) e.abono = "Abono inválido";
+    if (Number.isFinite(abonoNum) && Number.isFinite(finalNum) && abonoNum > finalNum) {
+      e.abono = "El abono no puede ser mayor al costo final";
+    }
     // 👉 si quieres que sea obligatoria, descomenta:
     // if (!data.cotizacionFile) e.cotizacionFile = "La cotización es obligatoria";
 
@@ -244,6 +266,57 @@ export default function NewServiceModal({ open, onClose, onSubmit }: Props) {
                   <option>72 horas</option>
                   <option>Normal</option>
                 </select>
+              </div>
+
+              {/* Abono */}
+              <div>
+                <label className="text-sm font-medium text-slate-800">Abono (COP)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  className={inputBase}
+                  value={data.abono}
+                  onChange={(e) => setField("abono", e.target.value)}
+                  placeholder="0"
+                />
+                {errors.abono && <p className="text-xs text-red-600 mt-1">{errors.abono}</p>}
+                <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={data.abonoPagado}
+                    onChange={(e) => setField("abonoPagado", e.target.checked)}
+                  />
+                  Abono pagado
+                </label>
+              </div>
+
+              {/* Costo final */}
+              <div>
+                <label className="text-sm font-medium text-slate-800">Costo final (COP)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  className={inputBase}
+                  value={data.costoFinal}
+                  onChange={(e) => setField("costoFinal", e.target.value)}
+                  placeholder="0"
+                  required
+                />
+                {errors.costoFinal && (
+                  <p className="text-xs text-red-600 mt-1">{errors.costoFinal}</p>
+                )}
+                <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={data.costoFinalPagado}
+                    onChange={(e) => setField("costoFinalPagado", e.target.checked)}
+                  />
+                  Costo final pagado
+                </label>
               </div>
 
               {/* Cotización */}
