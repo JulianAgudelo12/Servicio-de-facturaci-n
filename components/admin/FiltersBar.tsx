@@ -215,7 +215,7 @@ export default function FiltersBar({
                 min="0"
                 step="1"
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
-                value={filters.abonoMin}
+                value={filters.abonoMin ?? ""}
                 onChange={(e) => setFilters({ ...filters, abonoMin: e.target.value })}
                 placeholder="0"
               />
@@ -228,7 +228,7 @@ export default function FiltersBar({
                 min="0"
                 step="1"
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
-                value={filters.abonoMax}
+                value={filters.abonoMax ?? ""}
                 onChange={(e) => setFilters({ ...filters, abonoMax: e.target.value })}
                 placeholder="0"
               />
@@ -241,7 +241,7 @@ export default function FiltersBar({
                 min="0"
                 step="1"
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
-                value={filters.costoFinalMin}
+                value={filters.costoFinalMin ?? ""}
                 onChange={(e) => setFilters({ ...filters, costoFinalMin: e.target.value })}
                 placeholder="0"
               />
@@ -254,7 +254,7 @@ export default function FiltersBar({
                 min="0"
                 step="1"
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
-                value={filters.costoFinalMax}
+                value={filters.costoFinalMax ?? ""}
                 onChange={(e) => setFilters({ ...filters, costoFinalMax: e.target.value })}
                 placeholder="0"
               />

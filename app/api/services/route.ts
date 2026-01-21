@@ -69,12 +69,19 @@ export async function GET(req: Request) {
     const desde = url.searchParams.get("desde") ?? "";
     const hasta = url.searchParams.get("hasta") ?? "";
 
-    const abonoMinRaw = url.searchParams.get("abono_min") ?? "";
-    const abonoMaxRaw = url.searchParams.get("abono_max") ?? "";
-    const costoFinalMinRaw = url.searchParams.get("costo_final_min") ?? "";
-    const costoFinalMaxRaw = url.searchParams.get("costo_final_max") ?? "";
-    const abonoPagadoRaw = url.searchParams.get("abono_pagado") ?? "";
-    const costoFinalPagadoRaw = url.searchParams.get("costo_final_pagado") ?? "";
+    const safeParam = (v: string | null) => {
+      const s = String(v ?? "").trim();
+      if (!s) return "";
+      if (s === "undefined" || s === "null") return "";
+      return s;
+    };
+
+    const abonoMinRaw = safeParam(url.searchParams.get("abono_min"));
+    const abonoMaxRaw = safeParam(url.searchParams.get("abono_max"));
+    const costoFinalMinRaw = safeParam(url.searchParams.get("costo_final_min"));
+    const costoFinalMaxRaw = safeParam(url.searchParams.get("costo_final_max"));
+    const abonoPagadoRaw = safeParam(url.searchParams.get("abono_pagado"));
+    const costoFinalPagadoRaw = safeParam(url.searchParams.get("costo_final_pagado"));
 
     // Validar fechas si se proporcionan
     if (desde) {

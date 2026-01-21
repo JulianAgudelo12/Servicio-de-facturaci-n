@@ -115,10 +115,22 @@ export default function AdminHome() {
     if (f.costoFinalEstado === "pagado") params.set("costo_final_pagado", "true");
     if (f.costoFinalEstado === "pendiente") params.set("costo_final_pagado", "false");
 
-    if (String(f.abonoMin).trim()) params.set("abono_min", String(f.abonoMin).trim());
-    if (String(f.abonoMax).trim()) params.set("abono_max", String(f.abonoMax).trim());
-    if (String(f.costoFinalMin).trim()) params.set("costo_final_min", String(f.costoFinalMin).trim());
-    if (String(f.costoFinalMax).trim()) params.set("costo_final_max", String(f.costoFinalMax).trim());
+    const safe = (v: unknown) => {
+      const s = String(v ?? "").trim();
+      if (!s) return "";
+      if (s === "undefined" || s === "null") return "";
+      return s;
+    };
+
+    const abMin = safe((f as any).abonoMin);
+    const abMax = safe((f as any).abonoMax);
+    const cfMin = safe((f as any).costoFinalMin);
+    const cfMax = safe((f as any).costoFinalMax);
+
+    if (abMin) params.set("abono_min", abMin);
+    if (abMax) params.set("abono_max", abMax);
+    if (cfMin) params.set("costo_final_min", cfMin);
+    if (cfMax) params.set("costo_final_max", cfMax);
 
     params.set("limit", "200");
     return params.toString();
