@@ -14,6 +14,22 @@ function requiredEnv(name: string) {
   return v;
 }
 
+/**
+ * PDFKit + algunos visores pueden renderizar caracteres de control / unicode raros
+ * como "cuadritos" o íconos (por ejemplo tabs, VT, etc.).
+ * Esto limpia el texto antes de enviarlo al PDF.
+ */
+function sanitizePdfText(input: unknown) {
+  return String(input ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\t/g, " ")
+    // elimina caracteres de control (mantiene \n)
+    .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "")
+    // elimina separadores unicode que a veces rompen el layout
+    .replace(/[\u2028\u2029]/g, "\n")
+    .trimEnd();
+}
+
 function formatDateDDMMYYYY(dateStr: string) {
   const [yyyy, mm, dd] = String(dateStr || "").split("-");
   if (yyyy && mm && dd) return `${dd}-${mm}-${yyyy}`;
@@ -151,17 +167,35 @@ export async function GET(
 
     // ✅ 7. LOGO + INFO EMPRESA
     const logoPath = path.join(process.cwd(), "public", "briolete-logo.png");
-    const logoWidth = 150;
-    // Logo un poco más arriba que el texto, pero pegado al margen izquierdo
-    const logoX = left;
-    const logoY = doc.page.margins.top - 40;
+    const headerTop = doc.page.margins.top;
 
     // Logo (solo si existe)
+    let logoHeight = 0;
     if (fs.existsSync(logoPath)) {
       try {
         const logoBuf = await fs.promises.readFile(logoPath);
         if (logoBuf.length > 0) {
-          doc.image(logoBuf, logoX, logoY, { width: logoWidth });
+          // Columna derecha reservada para la info de empresa
+          const companyInfoWidth = 190;
+          const companyInfoX = right - (companyInfoWidth + 10);
+          const leftColumnRight = companyInfoX - 20;
+          const leftColumnWidth = Math.max(120, leftColumnRight - left);
+
+          // Logo MUCHO más grande, pero sin invadir la columna derecha
+          const desiredLogoWidth = 270;
+          const logoWidth = Math.min(desiredLogoWidth, leftColumnWidth);
+
+          // `openImage` existe en runtime, pero no está declarado en los tipos de pdfkit
+          const img = (doc as any).openImage(logoBuf);
+          logoHeight = (logoWidth / img.width) * img.height;
+
+          // Centrado dentro de la columna izquierda (horizontal) y alineado con el bloque derecho (vertical)
+          const companyBlockHeight = 54 + 10; // último renglón está en +54 con fontSize 9
+          const headerHeight = Math.max(companyBlockHeight, logoHeight);
+          const logoX = left + (leftColumnWidth - logoWidth) / 2;
+          const logoY = headerTop + (headerHeight - logoHeight) / 2;
+
+          doc.image(img, logoX, logoY, { width: logoWidth });
         }
       } catch (e: any) {
         if (process.env.NODE_ENV === "development") {
@@ -177,7 +211,7 @@ export async function GET(
 
     // Info empresa derecha (alineada al margen superior visual)
     const companyInfoX = right - 200;
-    const companyInfoY = doc.page.margins.top;
+    const companyInfoY = headerTop;
 
     doc
       .font("Inter-Bold")
@@ -225,29 +259,34 @@ export async function GET(
       });
 
     // ✅ 8. CONTENIDO DEL PDF
+    const companyBlockHeight = 54 + 10;
+    const headerHeight = Math.max(companyBlockHeight, logoHeight);
+    const titleY = headerTop + headerHeight + 40;
+
     doc
       .font("Inter-Bold")
       .fontSize(18)
       .fillColor("#111111")
-      .text(`Servicio: ${data.code}`, left, 150);
+      .text(`Servicio: ${sanitizePdfText(data.code)}`, left, titleY);
 
+    const titleSeparatorY = titleY + 30;
     doc
-      .moveTo(left, 180)
-      .lineTo(right, 180)
+      .moveTo(left, titleSeparatorY)
+      .lineTo(right, titleSeparatorY)
       .lineWidth(1)
       .strokeColor("#111111")
       .stroke();
 
-    const topY = 195;
+    const topY = titleSeparatorY + 15;
 
     doc.font("Inter").fontSize(11).fillColor("#111111");
-    doc.text(`Fecha: ${formatDateDDMMYYYY(data.fecha)}`, left, topY);
-    doc.text(`Hora: ${formatTimeHHMM(data.hora)}`, left + 240, topY);
-    doc.text(`Estado: ${data.estado ?? ""}`, left + 420, topY);
+    doc.text(`Fecha: ${sanitizePdfText(formatDateDDMMYYYY(data.fecha))}`, left, topY);
+    doc.text(`Hora: ${sanitizePdfText(formatTimeHHMM(data.hora))}`, left + 240, topY);
+    doc.text(`Estado: ${sanitizePdfText(data.estado ?? "")}`, left + 420, topY);
 
-    doc.text(`Cliente: ${data.cliente ?? ""}`, left, topY + 18);
-    doc.text(`Teléfono: ${data.telefono ?? ""}`, left + 240, topY + 18);
-    doc.text(`Máquina: ${data.maquina ?? ""}`, left + 420, topY + 18);
+    doc.text(`Cliente: ${sanitizePdfText(data.cliente ?? "")}`, left, topY + 18);
+    doc.text(`Teléfono: ${sanitizePdfText(data.telefono ?? "")}`, left + 240, topY + 18);
+    doc.text(`Máquina: ${sanitizePdfText(data.maquina ?? "")}`, left + 420, topY + 18);
 
     doc
       .moveTo(left, topY + 48)
@@ -276,7 +315,7 @@ export async function GET(
       .font("Inter")
       .fontSize(12)
       .fillColor("#111111")
-      .text(String(data.descripcion ?? ""), left, sectionY + 30, {
+      .text(sanitizePdfText(data.descripcion ?? ""), left, sectionY + 30, {
         width: right - left,
       });
 
@@ -300,7 +339,7 @@ export async function GET(
       .font("Inter")
       .fontSize(12)
       .fillColor("#111111")
-      .text(String(data.material ?? ""), left, observacionesY + 30, {
+      .text(sanitizePdfText(data.material ?? ""), left, observacionesY + 30, {
         width: right - left,
       });
 
