@@ -40,6 +40,12 @@ const DEFAULT_FILTERS: ServiceFilters = {
   prioridad: "",
   desde: "",
   hasta: "",
+  abonoEstado: "",
+  costoFinalEstado: "",
+  abonoMin: "",
+  abonoMax: "",
+  costoFinalMin: "",
+  costoFinalMax: "",
 };
 
 export default function AdminHome() {
@@ -103,6 +109,16 @@ export default function AdminHome() {
     if (f.prioridad) params.set("prioridad", f.prioridad);
     if (f.desde) params.set("desde", f.desde);
     if (f.hasta) params.set("hasta", f.hasta);
+
+    if (f.abonoEstado === "pagado") params.set("abono_pagado", "true");
+    if (f.abonoEstado === "pendiente") params.set("abono_pagado", "false");
+    if (f.costoFinalEstado === "pagado") params.set("costo_final_pagado", "true");
+    if (f.costoFinalEstado === "pendiente") params.set("costo_final_pagado", "false");
+
+    if (String(f.abonoMin).trim()) params.set("abono_min", String(f.abonoMin).trim());
+    if (String(f.abonoMax).trim()) params.set("abono_max", String(f.abonoMax).trim());
+    if (String(f.costoFinalMin).trim()) params.set("costo_final_min", String(f.costoFinalMin).trim());
+    if (String(f.costoFinalMax).trim()) params.set("costo_final_max", String(f.costoFinalMax).trim());
 
     params.set("limit", "200");
     return params.toString();

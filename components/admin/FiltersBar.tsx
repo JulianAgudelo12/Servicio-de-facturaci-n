@@ -6,6 +6,12 @@ export type ServiceFilters = {
   prioridad: "" | "24 horas" | "48 horas" | "72 horas" | "Normal";
   desde: string;
   hasta: string;
+  abonoEstado: "" | "pagado" | "pendiente";
+  costoFinalEstado: "" | "pagado" | "pendiente";
+  abonoMin: string;
+  abonoMax: string;
+  costoFinalMin: string;
+  costoFinalMax: string;
 };
 
 export default function FiltersBar({
@@ -108,7 +114,7 @@ export default function FiltersBar({
 
       {showFilters && (
         <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <div>
               <label className="text-sm font-medium text-slate-800">Estado</label>
               <select
@@ -150,6 +156,39 @@ export default function FiltersBar({
             </div>
 
             <div>
+              <label className="text-sm font-medium text-slate-800">Abono</label>
+              <select
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                value={filters.abonoEstado}
+                onChange={(e) =>
+                  setFilters({ ...filters, abonoEstado: e.target.value as ServiceFilters["abonoEstado"] })
+                }
+              >
+                <option value="">Todos</option>
+                <option value="pagado">Pagado</option>
+                <option value="pendiente">Pendiente</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-800">Costo final</label>
+              <select
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                value={filters.costoFinalEstado}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    costoFinalEstado: e.target.value as ServiceFilters["costoFinalEstado"],
+                  })
+                }
+              >
+                <option value="">Todos</option>
+                <option value="pagado">Pagado</option>
+                <option value="pendiente">Pendiente</option>
+              </select>
+            </div>
+
+            <div>
               <label className="text-sm font-medium text-slate-800">Desde</label>
               <input
                 type="date"
@@ -166,6 +205,58 @@ export default function FiltersBar({
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
                 value={filters.hasta}
                 onChange={(e) => setFilters({ ...filters, hasta: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-800">Abono mín (COP)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                value={filters.abonoMin}
+                onChange={(e) => setFilters({ ...filters, abonoMin: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-800">Abono máx (COP)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                value={filters.abonoMax}
+                onChange={(e) => setFilters({ ...filters, abonoMax: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-800">Costo final mín (COP)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                value={filters.costoFinalMin}
+                onChange={(e) => setFilters({ ...filters, costoFinalMin: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-800">Costo final máx (COP)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                value={filters.costoFinalMax}
+                onChange={(e) => setFilters({ ...filters, costoFinalMax: e.target.value })}
+                placeholder="0"
               />
             </div>
           </div>

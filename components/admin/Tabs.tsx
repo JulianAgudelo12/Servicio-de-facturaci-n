@@ -31,10 +31,7 @@ export default function Tabs({
               : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200",
           ].join(" ")}
         >
-          {t.label}{" "}
-          <span className="ml-2 inline-flex items-center rounded-md bg-slate-200 px-2 py-0.5 text-xs">
-            {counts[t.key]}
-          </span>
+          {t.label}
         </button>
       ))}
     </div>

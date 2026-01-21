@@ -69,6 +69,13 @@ export async function GET(req: Request) {
     const desde = url.searchParams.get("desde") ?? "";
     const hasta = url.searchParams.get("hasta") ?? "";
 
+    const abonoMinRaw = url.searchParams.get("abono_min") ?? "";
+    const abonoMaxRaw = url.searchParams.get("abono_max") ?? "";
+    const costoFinalMinRaw = url.searchParams.get("costo_final_min") ?? "";
+    const costoFinalMaxRaw = url.searchParams.get("costo_final_max") ?? "";
+    const abonoPagadoRaw = url.searchParams.get("abono_pagado") ?? "";
+    const costoFinalPagadoRaw = url.searchParams.get("costo_final_pagado") ?? "";
+
     // Validar fechas si se proporcionan
     if (desde) {
       const dateValidation = validateDate(desde);
@@ -81,6 +88,24 @@ export async function GET(req: Request) {
       if (!dateValidation.valid) {
         return createErrorResponse(dateValidation.error!, 400);
       }
+    }
+
+    // Validar filtros monetarios si se proporcionan
+    if (abonoMinRaw) {
+      const v = validateMoney(abonoMinRaw, "Abono mínimo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
+    }
+    if (abonoMaxRaw) {
+      const v = validateMoney(abonoMaxRaw, "Abono máximo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
+    }
+    if (costoFinalMinRaw) {
+      const v = validateMoney(costoFinalMinRaw, "Costo final mínimo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
+    }
+    if (costoFinalMaxRaw) {
+      const v = validateMoney(costoFinalMaxRaw, "Costo final máximo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
     }
 
     // Validar límite
@@ -128,6 +153,25 @@ export async function GET(req: Request) {
     // Rango por fecha
     if (desde) query = query.gte("fecha", desde);
     if (hasta) query = query.lte("fecha", hasta);
+
+    const parseMoney = (v: string) => {
+      const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+      return Number(normalized);
+    };
+
+    // Rango por abono / costo_final
+    if (abonoMinRaw) query = query.gte("abono", parseMoney(abonoMinRaw));
+    if (abonoMaxRaw) query = query.lte("abono", parseMoney(abonoMaxRaw));
+    if (costoFinalMinRaw) query = query.gte("costo_final", parseMoney(costoFinalMinRaw));
+    if (costoFinalMaxRaw) query = query.lte("costo_final", parseMoney(costoFinalMaxRaw));
+
+    // Estado pagado / pendiente (boolean)
+    if (abonoPagadoRaw === "true" || abonoPagadoRaw === "false") {
+      query = query.eq("abono_pagado", abonoPagadoRaw === "true");
+    }
+    if (costoFinalPagadoRaw === "true" || costoFinalPagadoRaw === "false") {
+      query = query.eq("costo_final_pagado", costoFinalPagadoRaw === "true");
+    }
 
     // Búsqueda libre en múltiples campos (OR con ilike)
     if (q) {
