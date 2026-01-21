@@ -181,19 +181,19 @@ export async function GET(
           const leftColumnRight = companyInfoX - 20;
           const leftColumnWidth = Math.max(120, leftColumnRight - left);
 
-          // Logo MUCHO más grande, pero sin invadir la columna derecha
-          const desiredLogoWidth = 270;
+          // Logo más moderado, pero sin invadir la columna derecha
+          const desiredLogoWidth = 220;
           const logoWidth = Math.min(desiredLogoWidth, leftColumnWidth);
 
           // `openImage` existe en runtime, pero no está declarado en los tipos de pdfkit
           const img = (doc as any).openImage(logoBuf);
           logoHeight = (logoWidth / img.width) * img.height;
 
-          // Centrado dentro de la columna izquierda (horizontal) y alineado con el bloque derecho (vertical)
+          // Más pegado a la esquina superior izquierda (sin centrado), alineado con el header
           const companyBlockHeight = 54 + 10; // último renglón está en +54 con fontSize 9
           const headerHeight = Math.max(companyBlockHeight, logoHeight);
-          const logoX = left + (leftColumnWidth - logoWidth) / 2;
-          const logoY = headerTop + (headerHeight - logoHeight) / 2;
+          const logoX = left;
+          const logoY = headerTop + Math.max(0, (companyBlockHeight - logoHeight) / 2);
 
           doc.image(img, logoX, logoY, { width: logoWidth });
         }
