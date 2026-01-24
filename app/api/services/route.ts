@@ -10,6 +10,7 @@ import {
   validateEstado,
   validatePrioridad,
   validateMaterial,
+  validateMoney,
   validateFile,
   sanitizeString,
 } from "../utils/validators";
@@ -68,6 +69,20 @@ export async function GET(req: Request) {
     const desde = url.searchParams.get("desde") ?? "";
     const hasta = url.searchParams.get("hasta") ?? "";
 
+    const safeParam = (v: string | null) => {
+      const s = String(v ?? "").trim();
+      if (!s) return "";
+      if (s === "undefined" || s === "null") return "";
+      return s;
+    };
+
+    const abonoMinRaw = safeParam(url.searchParams.get("abono_min"));
+    const abonoMaxRaw = safeParam(url.searchParams.get("abono_max"));
+    const costoFinalMinRaw = safeParam(url.searchParams.get("costo_final_min"));
+    const costoFinalMaxRaw = safeParam(url.searchParams.get("costo_final_max"));
+    const abonoPagadoRaw = safeParam(url.searchParams.get("abono_pagado"));
+    const costoFinalPagadoRaw = safeParam(url.searchParams.get("costo_final_pagado"));
+
     // Validar fechas si se proporcionan
     if (desde) {
       const dateValidation = validateDate(desde);
@@ -80,6 +95,24 @@ export async function GET(req: Request) {
       if (!dateValidation.valid) {
         return createErrorResponse(dateValidation.error!, 400);
       }
+    }
+
+    // Validar filtros monetarios si se proporcionan
+    if (abonoMinRaw) {
+      const v = validateMoney(abonoMinRaw, "Abono mínimo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
+    }
+    if (abonoMaxRaw) {
+      const v = validateMoney(abonoMaxRaw, "Abono máximo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
+    }
+    if (costoFinalMinRaw) {
+      const v = validateMoney(costoFinalMinRaw, "Costo final mínimo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
+    }
+    if (costoFinalMaxRaw) {
+      const v = validateMoney(costoFinalMaxRaw, "Costo final máximo", false);
+      if (!v.valid) return createErrorResponse(v.error!, 400);
     }
 
     // Validar límite
@@ -127,6 +160,25 @@ export async function GET(req: Request) {
     // Rango por fecha
     if (desde) query = query.gte("fecha", desde);
     if (hasta) query = query.lte("fecha", hasta);
+
+    const parseMoney = (v: string) => {
+      const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+      return Number(normalized);
+    };
+
+    // Rango por abono / costo_final
+    if (abonoMinRaw) query = query.gte("abono", parseMoney(abonoMinRaw));
+    if (abonoMaxRaw) query = query.lte("abono", parseMoney(abonoMaxRaw));
+    if (costoFinalMinRaw) query = query.gte("costo_final", parseMoney(costoFinalMinRaw));
+    if (costoFinalMaxRaw) query = query.lte("costo_final", parseMoney(costoFinalMaxRaw));
+
+    // Estado pagado / pendiente (boolean)
+    if (abonoPagadoRaw === "true" || abonoPagadoRaw === "false") {
+      query = query.eq("abono_pagado", abonoPagadoRaw === "true");
+    }
+    if (costoFinalPagadoRaw === "true" || costoFinalPagadoRaw === "false") {
+      query = query.eq("costo_final_pagado", costoFinalPagadoRaw === "true");
+    }
 
     // Búsqueda libre en múltiples campos (OR con ilike)
     if (q) {
@@ -193,6 +245,22 @@ export async function POST(req: Request) {
     const agente = sanitizeString(String(form.get("agente") ?? ""));
     const almacen = sanitizeString(String(form.get("almacen") ?? ""));
     const prioridad = String(form.get("prioridad") ?? "").trim();
+    const abonoRaw = String(form.get("abono") ?? "").trim();
+    const costoFinalRaw = String(form.get("costo_final") ?? "").trim();
+    const abonoPagadoRaw = String(form.get("abono_pagado") ?? "false").trim();
+    const costoFinalPagadoRaw = String(form.get("costo_final_pagado") ?? "false").trim();
+
+    const parseBool = (v: string) => String(v).toLowerCase() === "true";
+    const abono_pagado = parseBool(abonoPagadoRaw);
+    const costo_final_pagado = parseBool(costoFinalPagadoRaw);
+
+    const parseMoney = (v: string) => {
+      const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+      if (!normalized) return 0;
+      return Number(normalized);
+    };
+    const abono = parseMoney(abonoRaw);
+    const costo_final = parseMoney(costoFinalRaw);
 
     // ✅ 4. VALIDAR TODOS LOS CAMPOS
     const validations = [
@@ -207,12 +275,18 @@ export async function POST(req: Request) {
       validateString(agente, "Agente"),
       validateString(almacen, "Almacén"),
       validatePrioridad(prioridad),
+      validateMoney(abonoRaw, "Abono", false),
+      validateMoney(costoFinalRaw, "Costo final", true),
     ];
 
     for (const validation of validations) {
       if (!validation.valid) {
         return createErrorResponse(validation.error!, 400);
       }
+    }
+
+    if (Number.isFinite(abono) && Number.isFinite(costo_final) && abono > costo_final) {
+      return createErrorResponse("El abono no puede ser mayor al costo final", 400);
     }
 
     // ✅ 5. VALIDAR Y PROCESAR ARCHIVO (si existe)
@@ -264,6 +338,10 @@ export async function POST(req: Request) {
         almacen,
         prioridad,
         cotizacion_url,
+        abono,
+        costo_final,
+        abono_pagado,
+        costo_final_pagado,
       })
       .select("*")
       .single();

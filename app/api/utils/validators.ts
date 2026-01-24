@@ -6,6 +6,7 @@
 const MAX_STRING_LENGTH = 500;
 const MAX_DESCRIPTION_LENGTH = 2000;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_MONEY_VALUE = 1_000_000_000; // 1B (ajusta si necesitas más)
 const ALLOWED_FILE_TYPES = [
   "application/pdf",
   "image/png",
@@ -123,6 +124,37 @@ export function validateMaterial(material: string): { valid: boolean; error?: st
   if (!validMateriales.includes(material)) {
     return { valid: false, error: `Material inválido. Debe ser uno de: ${validMateriales.join(", ")}` };
   }
+  return { valid: true };
+}
+
+/**
+ * Valida valores monetarios (abono / costo final).
+ * Acepta números positivos (incluye decimales). Soporta "," como decimal.
+ */
+export function validateMoney(
+  value: string,
+  fieldName: string,
+  required: boolean = false
+): { valid: boolean; error?: string } {
+  const raw = String(value ?? "").trim();
+  if (!raw) {
+    if (required) return { valid: false, error: `${fieldName} es requerido` };
+    return { valid: true };
+  }
+
+  const normalized = raw.replace(/\s+/g, "").replace(",", ".");
+  const num = Number(normalized);
+
+  if (!Number.isFinite(num)) {
+    return { valid: false, error: `${fieldName} debe ser un número válido` };
+  }
+  if (num < 0) {
+    return { valid: false, error: `${fieldName} no puede ser negativo` };
+  }
+  if (num > MAX_MONEY_VALUE) {
+    return { valid: false, error: `${fieldName} es demasiado alto` };
+  }
+
   return { valid: true };
 }
 

@@ -16,6 +16,8 @@ function formatDateDDMMYYYY(dateStr: string) {
 }
 
 function mapDbToRow(s: any): ServiceRow {
+  const abono = Number(s.abono ?? 0);
+  const finalCost = Number(s.costo_final ?? 0);
   return {
     code: s.code,
     client: s.cliente,
@@ -24,7 +26,10 @@ function mapDbToRow(s: any): ServiceRow {
     description: s.descripcion,
     material: s.material,
     status: s.estado,
-    net: "CO$ 0",
+    abono: Number.isFinite(abono) ? abono : 0,
+    abonoPaid: Boolean(s.abono_pagado),
+    finalCost: Number.isFinite(finalCost) ? finalCost : 0,
+    finalPaid: Boolean(s.costo_final_pagado),
     date: formatDateDDMMYYYY(s.fecha),
   };
 }
@@ -35,6 +40,12 @@ const DEFAULT_FILTERS: ServiceFilters = {
   prioridad: "",
   desde: "",
   hasta: "",
+  abonoEstado: "",
+  costoFinalEstado: "",
+  abonoMin: "",
+  abonoMax: "",
+  costoFinalMin: "",
+  costoFinalMax: "",
 };
 
 export default function AdminHome() {
@@ -98,6 +109,28 @@ export default function AdminHome() {
     if (f.prioridad) params.set("prioridad", f.prioridad);
     if (f.desde) params.set("desde", f.desde);
     if (f.hasta) params.set("hasta", f.hasta);
+
+    if (f.abonoEstado === "pagado") params.set("abono_pagado", "true");
+    if (f.abonoEstado === "pendiente") params.set("abono_pagado", "false");
+    if (f.costoFinalEstado === "pagado") params.set("costo_final_pagado", "true");
+    if (f.costoFinalEstado === "pendiente") params.set("costo_final_pagado", "false");
+
+    const safe = (v: unknown) => {
+      const s = String(v ?? "").trim();
+      if (!s) return "";
+      if (s === "undefined" || s === "null") return "";
+      return s;
+    };
+
+    const abMin = safe((f as any).abonoMin);
+    const abMax = safe((f as any).abonoMax);
+    const cfMin = safe((f as any).costoFinalMin);
+    const cfMax = safe((f as any).costoFinalMax);
+
+    if (abMin) params.set("abono_min", abMin);
+    if (abMax) params.set("abono_max", abMax);
+    if (cfMin) params.set("costo_final_min", cfMin);
+    if (cfMax) params.set("costo_final_max", cfMax);
 
     params.set("limit", "200");
     return params.toString();
@@ -170,6 +203,10 @@ export default function AdminHome() {
       fd.append("agente", form.agente);
       fd.append("almacen", form.almacen);
       fd.append("prioridad", form.prioridad);
+      fd.append("abono", form.abono);
+      fd.append("costo_final", form.costoFinal);
+      fd.append("abono_pagado", String(form.abonoPagado));
+      fd.append("costo_final_pagado", String(form.costoFinalPagado));
 
       if (form.cotizacionFile) fd.append("cotizacionFile", form.cotizacionFile);
 

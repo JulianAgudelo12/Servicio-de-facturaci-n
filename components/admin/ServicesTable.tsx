@@ -10,9 +10,39 @@ export type ServiceRow = {
   description: string;
   material: string;
   status: "Pendiente" | "En fabricación" | "Garantía" | "Entregado";
-  net: string;
+  abono: number;
+  abonoPaid: boolean;
+  finalCost: number;
+  finalPaid: boolean;
   date: string;
 };
+
+function formatCOP(value: number) {
+  const v = Number(value ?? 0);
+  if (!Number.isFinite(v)) return "CO$ 0";
+  try {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    }).format(v);
+  } catch {
+    return `CO$ ${Math.round(v)}`;
+  }
+}
+
+function PaidBadge({ paid }: { paid: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        paid ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700",
+      ].join(" ")}
+    >
+      {paid ? "Pagado" : "Pendiente"}
+    </span>
+  );
+}
 
 export default function ServicesTable({
   rows,
@@ -115,6 +145,16 @@ export default function ServicesTable({
                     <span className="font-semibold">Fecha: </span>
                     <span>{r.date}</span>
                   </div>
+                  <div>
+                    <span className="font-semibold">Abono: </span>
+                    <span className="mr-2">{formatCOP(r.abono)}</span>
+                    <PaidBadge paid={r.abonoPaid} />
+                  </div>
+                  <div>
+                    <span className="font-semibold">Costo final: </span>
+                    <span className="mr-2">{formatCOP(r.finalCost)}</span>
+                    <PaidBadge paid={r.finalPaid} />
+                  </div>
                   <div className="sm:col-span-2">
                     <span className="font-semibold">Descripción: </span>
                     <span className="break-words">{r.description}</span>
@@ -147,7 +187,8 @@ export default function ServicesTable({
               <th className="p-3 font-semibold">DESCRIPCIÓN</th>
               <th className="p-3 font-semibold">MATERIAL</th>
               <th className="p-3 font-semibold">ESTADO</th>
-              <th className="p-3 text-right font-semibold">NETO</th>
+              <th className="p-3 text-right font-semibold">ABONO</th>
+              <th className="p-3 text-right font-semibold">COSTO FINAL</th>
               <th className="p-3 font-semibold">FECHA</th>
             </tr>
           </thead>
@@ -197,7 +238,18 @@ export default function ServicesTable({
                     </span>
                   </td>
 
-                  <td className="p-3 text-right text-slate-800">{r.net}</td>
+                  <td className="p-3 text-right text-slate-800">
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-semibold">{formatCOP(r.abono)}</span>
+                      <PaidBadge paid={r.abonoPaid} />
+                    </div>
+                  </td>
+                  <td className="p-3 text-right text-slate-800">
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-semibold">{formatCOP(r.finalCost)}</span>
+                      <PaidBadge paid={r.finalPaid} />
+                    </div>
+                  </td>
                   <td className="p-3 text-slate-800">{r.date}</td>
                 </tr>
               );

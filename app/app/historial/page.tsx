@@ -11,6 +11,8 @@ function formatDateDDMMYYYY(dateStr: string) {
 }
 
 function mapDbToRow(s: any): ServiceRow {
+  const abono = Number(s.abono ?? 0);
+  const finalCost = Number(s.costo_final ?? 0);
   return {
     code: s.code,
     client: s.cliente,
@@ -19,7 +21,10 @@ function mapDbToRow(s: any): ServiceRow {
     description: s.descripcion,
     material: s.material,
     status: s.estado,
-    net: "CO$ 0",
+    abono: Number.isFinite(abono) ? abono : 0,
+    abonoPaid: Boolean(s.abono_pagado),
+    finalCost: Number.isFinite(finalCost) ? finalCost : 0,
+    finalPaid: Boolean(s.costo_final_pagado),
     date: formatDateDDMMYYYY(s.fecha),
   };
 }

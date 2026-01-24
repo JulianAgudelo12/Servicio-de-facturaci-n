@@ -10,6 +10,7 @@ import {
   validateEstado,
   validatePrioridad,
   validateMaterial,
+  validateMoney,
   validateFile,
   sanitizeString,
 } from "../../utils/validators";
@@ -166,6 +167,22 @@ export async function PUT(
     const agente = sanitizeString(String(form.get("agente") ?? ""));
     const almacen = sanitizeString(String(form.get("almacen") ?? ""));
     const prioridad = String(form.get("prioridad") ?? "").trim();
+    const abonoRaw = String(form.get("abono") ?? "").trim();
+    const costoFinalRaw = String(form.get("costo_final") ?? "").trim();
+    const abonoPagadoRaw = String(form.get("abono_pagado") ?? "false").trim();
+    const costoFinalPagadoRaw = String(form.get("costo_final_pagado") ?? "false").trim();
+
+    const parseBool = (v: string) => String(v).toLowerCase() === "true";
+    const abono_pagado = parseBool(abonoPagadoRaw);
+    const costo_final_pagado = parseBool(costoFinalPagadoRaw);
+
+    const parseMoney = (v: string) => {
+      const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+      if (!normalized) return 0;
+      return Number(normalized);
+    };
+    const abono = parseMoney(abonoRaw);
+    const costo_final = parseMoney(costoFinalRaw);
 
     // ✅ 6. VALIDAR TODOS LOS CAMPOS
     const validations = [
@@ -180,12 +197,18 @@ export async function PUT(
       validateString(agente, "Agente"),
       validateString(almacen, "Almacén"),
       validatePrioridad(prioridad),
+      validateMoney(abonoRaw, "Abono", false),
+      validateMoney(costoFinalRaw, "Costo final", true),
     ];
 
     for (const validation of validations) {
       if (!validation.valid) {
         return createErrorResponse(validation.error!, 400);
       }
+    }
+
+    if (Number.isFinite(abono) && Number.isFinite(costo_final) && abono > costo_final) {
+      return createErrorResponse("El abono no puede ser mayor al costo final", 400);
     }
 
     const hora = normalizeTimeHHMMSS(horaRaw);
@@ -241,6 +264,10 @@ export async function PUT(
         almacen,
         prioridad,
         cotizacion_url,
+        abono,
+        costo_final,
+        abono_pagado,
+        costo_final_pagado,
       })
       .eq("code", existing.code)
       .select("*")

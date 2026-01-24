@@ -17,6 +17,10 @@ type Service = {
   agente: string;
   almacen: string;
   prioridad: "24 horas" | "48 horas" | "72 horas" | "Normal";
+  abono?: number | null;
+  costo_final?: number | null;
+  abono_pagado?: boolean | null;
+  costo_final_pagado?: boolean | null;
   cotizacion_url: string | null;
 };
 
@@ -58,6 +62,10 @@ export default function ServiceDetailPage() {
     agente: "",
     almacen: "",
     prioridad: "Normal" as Service["prioridad"],
+    abono: "",
+    costoFinal: "",
+    abonoPagado: false,
+    costoFinalPagado: false,
     cotizacionFile: null as File | null,
   });
 
@@ -102,6 +110,10 @@ export default function ServiceDetailPage() {
         agente: s.agente ?? "",
         almacen: s.almacen ?? "",
         prioridad: (s.prioridad as Service["prioridad"]) ?? "Normal",
+        abono: String(s.abono ?? ""),
+        costoFinal: String(s.costo_final ?? ""),
+        abonoPagado: Boolean(s.abono_pagado),
+        costoFinalPagado: Boolean(s.costo_final_pagado),
         cotizacionFile: null,
       });
     } finally {
@@ -133,6 +145,10 @@ export default function ServiceDetailPage() {
       fd.append("agente", form.agente);
       fd.append("almacen", form.almacen);
       fd.append("prioridad", form.prioridad);
+      fd.append("abono", form.abono);
+      fd.append("costo_final", form.costoFinal);
+      fd.append("abono_pagado", String(form.abonoPagado));
+      fd.append("costo_final_pagado", String(form.costoFinalPagado));
 
       if (form.cotizacionFile) fd.append("cotizacionFile", form.cotizacionFile);
 
@@ -172,6 +188,10 @@ export default function ServiceDetailPage() {
       agente: service.agente ?? "",
       almacen: service.almacen ?? "",
       prioridad: service.prioridad ?? "Normal",
+      abono: String(service.abono ?? ""),
+      costoFinal: String(service.costo_final ?? ""),
+      abonoPagado: Boolean(service.abono_pagado),
+      costoFinalPagado: Boolean(service.costo_final_pagado),
       cotizacionFile: null,
     });
   }
@@ -407,6 +427,91 @@ export default function ServiceDetailPage() {
                 <option value="Garantía">Garantía</option>
                 <option value="Entregado">Entregado</option>
               </select>
+            )}
+          </div>
+
+          {/* Pagos */}
+          <div className="rounded-md border border-slate-200 p-4 md:col-span-3">
+            <div className="text-xs font-semibold text-slate-600">Pagos</div>
+            {!isEditing ? (
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center justify-between rounded-md border border-slate-200 p-3">
+                  <div>
+                    <div className="text-xs text-slate-500">Abono</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      CO$ {Number(service.abono ?? 0) || 0}
+                    </div>
+                  </div>
+                  <span
+                    className={[
+                      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+                      service.abono_pagado ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700",
+                    ].join(" ")}
+                  >
+                    {service.abono_pagado ? "Pagado" : "Pendiente"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 p-3">
+                  <div>
+                    <div className="text-xs text-slate-500">Costo final</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      CO$ {Number(service.costo_final ?? 0) || 0}
+                    </div>
+                  </div>
+                  <span
+                    className={[
+                      "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+                      service.costo_final_pagado ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700",
+                    ].join(" ")}
+                  >
+                    {service.costo_final_pagado ? "Pagado" : "Pendiente"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Abono (COP)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    className={inputBase}
+                    value={form.abono}
+                    onChange={(e) => setField("abono", e.target.value)}
+                    placeholder="0"
+                  />
+                  <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form.abonoPagado}
+                      onChange={(e) => setField("abonoPagado", e.target.checked)}
+                    />
+                    Abono pagado
+                  </label>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Costo final (COP)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    className={inputBase}
+                    value={form.costoFinal}
+                    onChange={(e) => setField("costoFinal", e.target.value)}
+                    placeholder="0"
+                    required
+                  />
+                  <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form.costoFinalPagado}
+                      onChange={(e) => setField("costoFinalPagado", e.target.checked)}
+                    />
+                    Costo final pagado
+                  </label>
+                </div>
+              </div>
             )}
           </div>
 
