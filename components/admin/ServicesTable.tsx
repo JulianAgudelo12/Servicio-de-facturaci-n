@@ -157,7 +157,9 @@ export default function ServicesTable({
                   </div>
                   <div className="sm:col-span-2">
                     <span className="font-semibold">Descripción: </span>
-                    <span className="break-words">{r.description}</span>
+                    <span className="truncate-2-lines break-words block" title={r.description}>
+                      {r.description}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -184,7 +186,7 @@ export default function ServicesTable({
               <th className="p-3 font-semibold">CLIENTE</th>
               <th className="p-3 font-semibold">TELÉFONO</th>
               <th className="p-3 font-semibold">MÁQUINA</th>
-              <th className="p-3 font-semibold">DESCRIPCIÓN</th>
+              <th className="p-3 font-semibold w-[360px]">DESCRIPCIÓN</th>
               <th className="p-3 font-semibold">MATERIAL</th>
               <th className="p-3 font-semibold">ESTADO</th>
               <th className="p-3 text-right font-semibold">ABONO</th>
@@ -218,7 +220,11 @@ export default function ServicesTable({
                   <td className="p-3 font-medium text-slate-900">{r.client}</td>
                   <td className="p-3 text-slate-800">{r.phone}</td>
                   <td className="p-3 text-slate-800">{r.machine}</td>
-                  <td className="p-3 text-slate-800">{r.description}</td>
+                  <td className="p-3 text-slate-800 w-[360px]">
+                    <div className="truncate-2-lines break-words" title={r.description}>
+                      {r.description}
+                    </div>
+                  </td>
                   <td className="p-3 text-slate-800">{r.material}</td>
 
                   <td className="p-3">
