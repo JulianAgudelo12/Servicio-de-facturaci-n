@@ -14,6 +14,7 @@ export type ServiceRow = {
   abonoPaid: boolean;
   finalCost: number;
   finalPaid: boolean;
+  finalPayment: number; // pago_final (costo final - abono)
   date: string;
 };
 
@@ -151,6 +152,10 @@ export default function ServicesTable({
                     <PaidBadge paid={r.abonoPaid} />
                   </div>
                   <div>
+                    <span className="font-semibold">Pago final: </span>
+                    <span className="mr-2">{formatCOP(r.finalPayment)}</span>
+                  </div>
+                  <div>
                     <span className="font-semibold">Costo final: </span>
                     <span className="mr-2">{formatCOP(r.finalCost)}</span>
                     <PaidBadge paid={r.finalPaid} />
@@ -170,7 +175,7 @@ export default function ServicesTable({
 
       {/* Vista escritorio: tabla */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full md:min-w-[1050px] w-full text-sm">
+        <table className="min-w-full md:min-w-[1180px] w-full text-sm">
           <thead className="bg-slate-50 text-slate-800 border-b border-slate-200">
             <tr className="text-left">
               <th className="p-3 w-10">
@@ -190,6 +195,7 @@ export default function ServicesTable({
               <th className="p-3 font-semibold">MATERIAL</th>
               <th className="p-3 font-semibold">ESTADO</th>
               <th className="p-3 text-right font-semibold">ABONO</th>
+              <th className="p-3 text-right font-semibold">PAGO FINAL</th>
               <th className="p-3 text-right font-semibold">COSTO FINAL</th>
               <th className="p-3 font-semibold">FECHA</th>
             </tr>
@@ -249,6 +255,9 @@ export default function ServicesTable({
                       <span className="font-semibold">{formatCOP(r.abono)}</span>
                       <PaidBadge paid={r.abonoPaid} />
                     </div>
+                  </td>
+                  <td className="p-3 text-right text-slate-800">
+                    <span className="font-semibold">{formatCOP(r.finalPayment)}</span>
                   </td>
                   <td className="p-3 text-right text-slate-800">
                     <div className="flex flex-col items-end gap-1">

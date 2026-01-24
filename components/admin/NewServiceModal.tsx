@@ -60,6 +60,23 @@ export default function NewServiceModal({ open, onClose, onSubmit }: Props) {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const parseMoney = (v: string) => {
+    const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+    if (!normalized) return 0;
+    return Number(normalized);
+  };
+
+  const pagoFinalPreview = useMemo(() => {
+    // No mostrar hasta que ingresen costo final (evita negativos mientras está vacío/0 por defecto)
+    if (!String(data.costoFinal ?? "").trim()) return "";
+    const abonoNum = parseMoney(data.abono);
+    const finalNum = parseMoney(data.costoFinal);
+    if (!Number.isFinite(abonoNum) || !Number.isFinite(finalNum)) return "";
+    const diff = finalNum - abonoNum;
+    return String(Number.isFinite(diff) ? diff : "");
+  }, [data.abono, data.costoFinal]);
+
+  // Importante: no retornar antes de hooks (regla de hooks de React)
   if (!open) return null;
 
   function setField<K extends keyof ServiceFormData>(key: K, value: ServiceFormData[K]) {
@@ -86,11 +103,6 @@ export default function NewServiceModal({ open, onClose, onSubmit }: Props) {
     if (!data.prioridad) e.prioridad = "Prioridad es obligatoria";
     if (!String(data.costoFinal).trim()) e.costoFinal = "Costo final es obligatorio";
 
-    const parseMoney = (v: string) => {
-      const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
-      if (!normalized) return 0;
-      return Number(normalized);
-    };
     const abonoNum = parseMoney(data.abono);
     const finalNum = parseMoney(data.costoFinal);
     if (!Number.isFinite(finalNum) || finalNum < 0) e.costoFinal = "Costo final inválido";
@@ -317,6 +329,21 @@ export default function NewServiceModal({ open, onClose, onSubmit }: Props) {
                   />
                   Costo final pagado
                 </label>
+              </div>
+
+              {/* Pago final (calculado) */}
+              <div>
+                <label className="text-sm font-medium text-slate-800">Pago final (calculado)</label>
+                <input
+                  type="number"
+                  className={[inputBase, "bg-slate-50 text-slate-700"].join(" ")}
+                  value={pagoFinalPreview}
+                  readOnly
+                  tabIndex={-1}
+                />
+                <p className="mt-1 text-xs text-slate-600">
+                  Se calcula automáticamente: costo final - abono.
+                </p>
               </div>
 
               {/* Cotización */}

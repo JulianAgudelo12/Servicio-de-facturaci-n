@@ -19,6 +19,7 @@ type Service = {
   prioridad: "24 horas" | "48 horas" | "72 horas" | "Normal";
   abono?: number | null;
   costo_final?: number | null;
+  pago_final?: number | null;
   abono_pagado?: boolean | null;
   costo_final_pagado?: boolean | null;
   cotizacion_url: string | null;
@@ -70,6 +71,21 @@ export default function ServiceDetailPage() {
   });
 
   const [error, setError] = useState<string>("");
+
+  const parseMoney = (v: string) => {
+    const normalized = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+    if (!normalized) return 0;
+    return Number(normalized);
+  };
+
+  const pagoFinalPreview = useMemo(() => {
+    if (!String(form.costoFinal ?? "").trim()) return 0;
+    const abonoNum = parseMoney(form.abono);
+    const finalNum = parseMoney(form.costoFinal);
+    if (!Number.isFinite(abonoNum) || !Number.isFinite(finalNum)) return 0;
+    const diff = finalNum - abonoNum;
+    return Number.isFinite(diff) ? diff : 0;
+  }, [form.abono, form.costoFinal]);
 
   function setField<K extends keyof typeof form>(
     key: K,
@@ -467,6 +483,17 @@ export default function ServiceDetailPage() {
                     {service.costo_final_pagado ? "Pagado" : "Pendiente"}
                   </span>
                 </div>
+                <div className="sm:col-span-2 flex items-center justify-between rounded-md border border-slate-200 p-3">
+                  <div>
+                    <div className="text-xs text-slate-500">Pago final</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      CO$ {Number(service.pago_final ?? (Number(service.costo_final ?? 0) - Number(service.abono ?? 0))) || 0}
+                    </div>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    (costo final - abono)
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -510,6 +537,16 @@ export default function ServiceDetailPage() {
                     />
                     Costo final pagado
                   </label>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-semibold text-slate-600">Pago final (calculado)</label>
+                  <input
+                    type="number"
+                    className={[inputBase, "bg-slate-50 text-slate-700"].join(" ")}
+                    value={String(pagoFinalPreview)}
+                    readOnly
+                    tabIndex={-1}
+                  />
                 </div>
               </div>
             )}

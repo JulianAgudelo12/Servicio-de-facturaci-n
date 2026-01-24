@@ -41,6 +41,20 @@ function formatTimeHHMM(timeStr: string) {
   return String(timeStr).slice(0, 5);
 }
 
+function formatCOP(value: unknown) {
+  const v = Number(value ?? 0);
+  if (!Number.isFinite(v)) return "CO$ 0";
+  try {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    }).format(v);
+  } catch {
+    return `CO$ ${Math.round(v)}`;
+  }
+}
+
 /**
  * GET → Generar PDF de factura/servicio
  *
@@ -346,7 +360,18 @@ export async function GET(
       .strokeColor("#111111")
       .stroke();
 
-    const sectionY = afterTopBlockY + 14;
+    // Pagos (si existen en el servicio)
+    const abonoVal = Number(data.abono ?? 0);
+    const costoFinalVal = Number(data.costo_final ?? 0);
+    const pagoFinalVal = Number(data.pago_final ?? (costoFinalVal - abonoVal));
+
+    const pagosY = afterTopBlockY + 10;
+    doc.font("Inter").fontSize(10).fillColor("#111111");
+    doc.text(`Abono: ${formatCOP(abonoVal)}`, col1X, pagosY, { width: colW });
+    doc.text(`Costo final: ${formatCOP(costoFinalVal)}`, col2X, pagosY, { width: colW });
+    doc.text(`Pago final: ${formatCOP(pagoFinalVal)}`, col3X, pagosY, { width: colW });
+
+    const sectionY = pagosY + 24;
 
     // Descripción
     doc
