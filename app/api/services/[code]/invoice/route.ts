@@ -41,6 +41,20 @@ function formatTimeHHMM(timeStr: string) {
   return String(timeStr).slice(0, 5);
 }
 
+function formatCOP(value: unknown) {
+  const v = Number(value ?? 0);
+  if (!Number.isFinite(v)) return "CO$ 0";
+  try {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    }).format(v);
+  } catch {
+    return `CO$ ${Math.round(v)}`;
+  }
+}
+
 /**
  * GET → Generar PDF de factura/servicio
  *
@@ -51,7 +65,7 @@ function formatTimeHHMM(timeStr: string) {
  * - No expone información sensible en errores de producción
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ code: string }> | { code: string } }
 ) {
   try {
@@ -108,8 +122,13 @@ export async function GET(
     }
 
     // ✅ 5. GENERAR PDF
+    // Papel: por defecto LETTER (suele imprimir mejor centrado en impresoras), pero permite forzar A4.
+    // Ej: /api/services/SER2026-0001/invoice?paper=a4
+    const paperParam = new URL(req.url).searchParams.get("paper");
+    const paperSize = paperParam?.toLowerCase() === "a4" ? "A4" : "LETTER";
+
     const doc = new PDFDocument({
-      size: "A4",
+      size: paperSize as any,
       margins: { top: 36, left: 36, right: 36, bottom: 36 },
     });
 
@@ -122,8 +141,11 @@ export async function GET(
     });
 
     const pageWidth = doc.page.width;
-    const left = doc.page.margins.left;
-    const right = pageWidth - doc.page.margins.right;
+    // Usamos un "content box" más angosto y centrado para mejorar el centrado al imprimir
+    // (y para reducir el tamaño del contenido en la hoja).
+    const maxContentWidth = Math.min(520, pageWidth - 144); // ~72pt por lado (≈ 2.54cm)
+    const left = (pageWidth - maxContentWidth) / 2;
+    const right = left + maxContentWidth;
 
     // ✅ 6. CARGAR FUENTES (con manejo de errores mejorado)
     const fontRegularPath = path.join(
@@ -261,15 +283,15 @@ export async function GET(
     // ✅ 8. CONTENIDO DEL PDF
     const companyBlockHeight = 54 + 10;
     const headerHeight = Math.max(companyBlockHeight, logoHeight);
-    const titleY = headerTop + headerHeight + 40;
+    const titleY = headerTop + headerHeight + 18;
 
     doc
       .font("Inter-Bold")
-      .fontSize(18)
+      .fontSize(16)
       .fillColor("#111111")
       .text(`Servicio: ${sanitizePdfText(data.code)}`, left, titleY);
 
-    const titleSeparatorY = titleY + 30;
+    const titleSeparatorY = titleY + 22;
     doc
       .moveTo(left, titleSeparatorY)
       .lineTo(right, titleSeparatorY)
@@ -277,30 +299,84 @@ export async function GET(
       .strokeColor("#111111")
       .stroke();
 
-    const topY = titleSeparatorY + 15;
+    const topY = titleSeparatorY + 10;
 
-    doc.font("Inter").fontSize(11).fillColor("#111111");
-    doc.text(`Fecha: ${sanitizePdfText(formatDateDDMMYYYY(data.fecha))}`, left, topY);
-    doc.text(`Hora: ${sanitizePdfText(formatTimeHHMM(data.hora))}`, left + 240, topY);
-    doc.text(`Estado: ${sanitizePdfText(data.estado ?? "")}`, left + 420, topY);
+    // Bloque de datos en 3 columnas (evita solapamientos al hacer wrap y calcula alturas)
+    doc.font("Inter").fontSize(10).fillColor("#111111");
 
-    doc.text(`Cliente: ${sanitizePdfText(data.cliente ?? "")}`, left, topY + 18);
-    doc.text(`Teléfono: ${sanitizePdfText(data.telefono ?? "")}`, left + 240, topY + 18);
-    doc.text(`Máquina: ${sanitizePdfText(data.maquina ?? "")}`, left + 420, topY + 18);
+    const availableW = right - left;
+    const colGap = 14;
+    const colW = (availableW - colGap * 2) / 3;
+    const col1X = left;
+    const col2X = left + colW + colGap;
+    const col3X = left + (colW + colGap) * 2;
+
+    const col1Line1 = `Fecha: ${sanitizePdfText(formatDateDDMMYYYY(data.fecha))}`;
+    const col2Line1 = `Hora: ${sanitizePdfText(formatTimeHHMM(data.hora))}`;
+    const col3Line1 = `Estado: ${sanitizePdfText(data.estado ?? "")}`;
+
+    const col1Line2 = `Cliente: ${sanitizePdfText(data.cliente ?? "")}`;
+    const col2Line2 = `Teléfono: ${sanitizePdfText(data.telefono ?? "")}`;
+    const col3Line2 = `Máquina: ${sanitizePdfText(data.maquina ?? "")}`;
+
+    const lineOpts = { width: colW as number };
+    const lineGap = 6;
+
+    const col1H =
+      doc.heightOfString(col1Line1, lineOpts) +
+      lineGap +
+      doc.heightOfString(col1Line2, lineOpts);
+    const col2H =
+      doc.heightOfString(col2Line1, lineOpts) +
+      lineGap +
+      doc.heightOfString(col2Line2, lineOpts);
+    const col3H =
+      doc.heightOfString(col3Line1, lineOpts) +
+      lineGap +
+      doc.heightOfString(col3Line2, lineOpts);
+
+    const rowH = Math.max(col1H, col2H, col3H);
+
+    doc.text(col1Line1, col1X, topY, lineOpts);
+    doc.text(col2Line1, col2X, topY, lineOpts);
+    doc.text(col3Line1, col3X, topY, lineOpts);
+
+    const line2Y = topY + Math.max(
+      doc.heightOfString(col1Line1, lineOpts),
+      doc.heightOfString(col2Line1, lineOpts),
+      doc.heightOfString(col3Line1, lineOpts)
+    ) + lineGap;
+
+    doc.text(col1Line2, col1X, line2Y, lineOpts);
+    doc.text(col2Line2, col2X, line2Y, lineOpts);
+    doc.text(col3Line2, col3X, line2Y, lineOpts);
+
+    const afterTopBlockY = topY + rowH + 10;
 
     doc
-      .moveTo(left, topY + 48)
-      .lineTo(right, topY + 48)
+      .moveTo(left, afterTopBlockY)
+      .lineTo(right, afterTopBlockY)
       .lineWidth(1)
       .strokeColor("#111111")
       .stroke();
 
-    const sectionY = topY + 70;
+    // Pagos (si existen en el servicio)
+    const abonoVal = Number(data.abono ?? 0);
+    const costoFinalVal = Number(data.costo_final ?? 0);
+    const pagoFinalVal = Number(data.pago_final ?? (costoFinalVal - abonoVal));
+
+    const pagosY = afterTopBlockY + 10;
+    doc.font("Inter").fontSize(10).fillColor("#111111");
+    doc.text(`Abono: ${formatCOP(abonoVal)}`, col1X, pagosY, { width: colW });
+    doc.text(`Costo final: ${formatCOP(costoFinalVal)}`, col2X, pagosY, { width: colW });
+    doc.text(`Pago final: ${formatCOP(pagoFinalVal)}`, col3X, pagosY, { width: colW });
+
+    const sectionY = pagosY + 24;
 
     // Descripción
     doc
       .font("Inter-Bold")
-      .fontSize(12)
+      .fontSize(11)
       .fillColor("#111111")
       .text("Descripción", left, sectionY);
 
@@ -313,18 +389,20 @@ export async function GET(
 
     doc
       .font("Inter")
-      .fontSize(12)
+      .fontSize(10)
       .fillColor("#111111")
-      .text(sanitizePdfText(data.descripcion ?? ""), left, sectionY + 30, {
+      .text(sanitizePdfText(data.descripcion ?? ""), left, sectionY + 28, {
         width: right - left,
       });
 
     // Observaciones
-    const observacionesY = sectionY + 120;
+    const descText = sanitizePdfText(data.descripcion ?? "");
+    const descH = doc.heightOfString(descText, { width: right - left });
+    const observacionesY = sectionY + 28 + descH + 18;
 
     doc
       .font("Inter-Bold")
-      .fontSize(12)
+      .fontSize(11)
       .fillColor("#111111")
       .text("Observaciones", left, observacionesY);
 
@@ -337,18 +415,22 @@ export async function GET(
 
     doc
       .font("Inter")
-      .fontSize(12)
+      .fontSize(10)
       .fillColor("#111111")
       .text(sanitizePdfText(data.material ?? ""), left, observacionesY + 30, {
         width: right - left,
       });
 
-    // Footer
+    // Footer (debajo del contenido) para que la factura no ocupe toda la hoja
+    const obsText = sanitizePdfText(data.material ?? "");
+    const obsH = doc.heightOfString(obsText, { width: right - left });
+    const footerY = observacionesY + 30 + obsH + 24;
+
     doc
       .font("Inter")
-      .fontSize(9)
+      .fontSize(8)
       .fillColor("#444444")
-      .text("Generado por Briolete · Sistema de Servicios", left, doc.page.height - 60, {
+      .text("Generado por Briolete · Sistema de Servicios", left, footerY, {
         width: right - left,
         align: "center",
       });

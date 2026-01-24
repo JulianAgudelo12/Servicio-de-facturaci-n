@@ -13,6 +13,9 @@ function formatDateDDMMYYYY(dateStr: string) {
 function mapDbToRow(s: any): ServiceRow {
   const abono = Number(s.abono ?? 0);
   const finalCost = Number(s.costo_final ?? 0);
+  const finalPaymentRaw = s.pago_final;
+  const finalPaymentFromDb = Number(finalPaymentRaw);
+  const finalPaymentFallback = finalCost - abono;
   return {
     code: s.code,
     client: s.cliente,
@@ -25,6 +28,7 @@ function mapDbToRow(s: any): ServiceRow {
     abonoPaid: Boolean(s.abono_pagado),
     finalCost: Number.isFinite(finalCost) ? finalCost : 0,
     finalPaid: Boolean(s.costo_final_pagado),
+    finalPayment: Number.isFinite(finalPaymentFromDb) ? finalPaymentFromDb : (Number.isFinite(finalPaymentFallback) ? finalPaymentFallback : 0),
     date: formatDateDDMMYYYY(s.fecha),
   };
 }
