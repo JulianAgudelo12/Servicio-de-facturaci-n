@@ -188,14 +188,12 @@ export default function HistorialPage() {
   }, [rows, sortKey, sortDir]);
 
   function handleSort(k: SortKey) {
-    setSortKey((prevKey) => {
-      if (prevKey !== k) {
-        setSortDir("asc");
-        return k;
-      }
-      setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
-      return prevKey;
-    });
+    if (sortKey !== k) {
+      setSortKey(k);
+      setSortDir("asc");
+      return;
+    }
+    setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
   }
 
   // ✅ selección fila

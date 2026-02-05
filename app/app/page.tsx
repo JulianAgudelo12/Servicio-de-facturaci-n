@@ -359,14 +359,12 @@ export default function AdminHome() {
 
   function handleSort(k: SortKey) {
     setCurrentPage(1);
-    setSortKey((prevKey) => {
-      if (prevKey !== k) {
-        setSortDir("asc");
-        return k;
-      }
-      setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
-      return prevKey;
-    });
+    if (sortKey !== k) {
+      setSortKey(k);
+      setSortDir("asc");
+      return;
+    }
+    setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
   }
 
   return (

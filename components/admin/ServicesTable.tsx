@@ -60,9 +60,54 @@ function PaidBadge({ paid }: { paid: boolean }) {
   );
 }
 
+function isTodayOrFutureDate(raw: unknown) {
+  const s = String(raw ?? "").trim();
+  if (!s) return false;
+
+  // Prefer string-compare for YYYY-MM-DD (stable and timezone-safe for "date-only" values)
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const today = `${yyyy}-${mm}-${dd}`;
+    return s >= today; // hoy o futuro
+  }
+
+  // Fallback (best-effort) for other date formats
+  const t = Date.parse(s);
+  if (!Number.isFinite(t)) return false;
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return t >= startToday;
+}
+
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active) return <span className="text-slate-400 ml-1">↕</span>;
-  return <span className="text-slate-700 ml-1">{dir === "asc" ? "↑" : "↓"}</span>;
+  const upActive = active && dir === "asc";
+  const downActive = active && dir === "desc";
+
+  const base = active ? "text-slate-300" : "text-slate-400";
+  const highlight = "text-emerald-700";
+
+  return (
+    <span className="ml-1 inline-flex flex-col -space-y-[2px] leading-none" aria-hidden="true">
+      <svg
+        viewBox="0 0 12 12"
+        className={`h-3 w-3 ${upActive ? highlight : base}`}
+        focusable="false"
+      >
+        <path d="M6 2L10 6H2L6 2Z" fill="currentColor" />
+      </svg>
+      <svg
+        viewBox="0 0 12 12"
+        className={`h-3 w-3 ${downActive ? highlight : base}`}
+        focusable="false"
+      >
+        <path d="M6 10L2 6H10L6 10Z" fill="currentColor" />
+      </svg>
+    </span>
+  );
 }
 
 function SortableTh({
@@ -161,6 +206,7 @@ export default function ServicesTable({
         )}
         {rows.map((r) => {
           const checked = selectedCodes.has(r.code);
+          const isFuture = isTodayOrFutureDate(r.dateRaw);
           return (
             <button
               key={r.code}
@@ -220,7 +266,7 @@ export default function ServicesTable({
                   </div>
                   <div>
                     <span className="font-semibold">Fecha: </span>
-                    <span>{r.date}</span>
+                    <span className={isFuture ? "font-semibold text-slate-900" : ""}>{r.date}</span>
                   </div>
                   <div>
                     <span className="font-semibold">Abono: </span>
@@ -280,6 +326,7 @@ export default function ServicesTable({
           <tbody className="text-slate-900">
             {rows.map((r) => {
               const checked = selectedCodes.has(r.code);
+              const isFuture = isTodayOrFutureDate(r.dateRaw);
               return (
                 <tr
                   key={r.code}
@@ -341,7 +388,9 @@ export default function ServicesTable({
                       <PaidBadge paid={r.finalPaid} />
                     </div>
                   </td>
-                  <td className="p-3 text-slate-800">{r.date}</td>
+                  <td className={["p-3", isFuture ? "font-semibold text-slate-900" : "text-slate-800"].join(" ")}>
+                    {r.date}
+                  </td>
                 </tr>
               );
             })}

@@ -188,7 +188,12 @@ export async function GET(
     doc.font("Inter"); // ✅ evita Helvetica
 
     // ✅ 7. LOGO + INFO EMPRESA
-    const logoPath = path.join(process.cwd(), "public", "briolete-logo.png");
+    // Preferimos el logo horizontal (similar al ejemplo), pero dejamos fallback al logo cuadrado.
+    const logoCandidates = [
+      path.join(process.cwd(), "public", "briolete-logo.png"),
+      path.join(process.cwd(), "public", "logo-briolete.png"),
+    ];
+    const logoPath = logoCandidates.find((p) => fs.existsSync(p)) ?? logoCandidates[0];
     const headerTop = doc.page.margins.top;
 
     // Logo (solo si existe)
@@ -199,25 +204,31 @@ export async function GET(
         if (logoBuf.length > 0) {
           // Columna derecha reservada para la info de empresa
           const companyInfoWidth = 190;
-          const companyInfoX = right - (companyInfoWidth + 10);
-          const leftColumnRight = companyInfoX - 20;
+          const rightGap = 12;
+          const leftColumnRight = right - (companyInfoWidth + rightGap);
           const leftColumnWidth = Math.max(120, leftColumnRight - left);
-
-          // Logo más moderado, pero sin invadir la columna derecha
-          const desiredLogoWidth = 220;
-          const logoWidth = Math.min(desiredLogoWidth, leftColumnWidth);
 
           // `openImage` existe en runtime, pero no está declarado en los tipos de pdfkit
           const img = (doc as any).openImage(logoBuf);
-          logoHeight = (logoWidth / img.width) * img.height;
 
-          // Más pegado a la esquina superior izquierda (sin centrado), alineado con el header
-          const companyBlockHeight = 54 + 10; // último renglón está en +54 con fontSize 9
-          const headerHeight = Math.max(companyBlockHeight, logoHeight);
+          // Queremos un logo "tipo encabezado" (como el ejemplo):
+          // - ancho grande a la izquierda
+          // - sin invadir la columna derecha
+          // - altura moderada (para que no se coma la página)
+          // Un poco más pequeño, pero sigue viéndose "protagonista" como encabezado
+          const maxLogoH = 50; // antes 54
+          const maxLogoW = Math.min(leftColumnWidth, 290); // antes 320
+
+          // Fit mantiene proporción
+          const fittedScale = Math.min(maxLogoW / img.width, maxLogoH / img.height);
+          const logoW = img.width * fittedScale;
+          logoHeight = img.height * fittedScale;
+
+          // Pegado arriba-izquierda, con un pequeño offset para respirar
           const logoX = left;
-          const logoY = headerTop + Math.max(0, (companyBlockHeight - logoHeight) / 2);
+          const logoY = headerTop + 2;
 
-          doc.image(img, logoX, logoY, { width: logoWidth });
+          doc.image(img, logoX, logoY, { width: logoW, height: logoHeight });
         }
       } catch (e: any) {
         if (process.env.NODE_ENV === "development") {
