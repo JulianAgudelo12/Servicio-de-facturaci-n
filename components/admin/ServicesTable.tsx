@@ -16,7 +16,22 @@ export type ServiceRow = {
   finalPaid: boolean;
   finalPayment: number; // pago_final (costo final - abono)
   date: string;
+  dateRaw: string; // fecha original (idealmente YYYY-MM-DD) para ordenar correctamente
 };
+
+export type SortDir = "asc" | "desc";
+export type SortKey =
+  | "code"
+  | "client"
+  | "phone"
+  | "machine"
+  | "description"
+  | "material"
+  | "status"
+  | "abono"
+  | "finalPayment"
+  | "finalCost"
+  | "date";
 
 function formatCOP(value: number) {
   const v = Number(value ?? 0);
@@ -45,6 +60,61 @@ function PaidBadge({ paid }: { paid: boolean }) {
   );
 }
 
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <span className="text-slate-400 ml-1">↕</span>;
+  return <span className="text-slate-700 ml-1">{dir === "asc" ? "↑" : "↓"}</span>;
+}
+
+function SortableTh({
+  label,
+  k,
+  sortKey,
+  sortDir,
+  onSort,
+  align = "left",
+  className = "",
+}: {
+  label: string;
+  k: SortKey;
+  sortKey?: SortKey;
+  sortDir?: SortDir;
+  onSort?: (k: SortKey) => void;
+  align?: "left" | "right";
+  className?: string;
+}) {
+  const active = sortKey === k;
+  const dir: SortDir = sortDir ?? "asc";
+  const canSort = typeof onSort === "function";
+
+  return (
+    <th
+      className={[
+        "p-3 font-semibold",
+        align === "right" ? "text-right" : "",
+        className,
+      ].join(" ")}
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      {canSort ? (
+        <button
+          type="button"
+          onClick={() => onSort(k)}
+          className={[
+            "inline-flex items-center gap-1 hover:text-slate-900 select-none",
+            align === "right" ? "justify-end w-full" : "",
+          ].join(" ")}
+          title={`Ordenar por ${label} (${active ? (dir === "asc" ? "ascendente" : "descendente") : "ascendente"})`}
+        >
+          <span>{label}</span>
+          <SortIcon active={active} dir={dir} />
+        </button>
+      ) : (
+        <span>{label}</span>
+      )}
+    </th>
+  );
+}
+
 export default function ServicesTable({
   rows,
   selectedCodes,
@@ -55,6 +125,9 @@ export default function ServicesTable({
   totalPages = 1,
   onPageChange,
   totalRecords = 0,
+  sortKey,
+  sortDir,
+  onSort,
 }: {
   rows: ServiceRow[];
   selectedCodes: Set<string>;
@@ -65,6 +138,9 @@ export default function ServicesTable({
   totalPages?: number;
   onPageChange?: (page: number) => void;
   totalRecords?: number;
+  sortKey?: SortKey;
+  sortDir?: SortDir;
+  onSort?: (k: SortKey) => void;
 }) {
   const allChecked = useMemo(() => rows.length > 0 && rows.every((r) => selectedCodes.has(r.code)), [rows, selectedCodes]);
   const someChecked = useMemo(() => rows.some((r) => selectedCodes.has(r.code)) && !allChecked, [rows, selectedCodes, allChecked]);
@@ -187,17 +263,17 @@ export default function ServicesTable({
                   aria-label="Seleccionar todo"
                 />
               </th>
-              <th className="p-3 font-semibold">CÓDIGO</th>
-              <th className="p-3 font-semibold">CLIENTE</th>
-              <th className="p-3 font-semibold">TELÉFONO</th>
-              <th className="p-3 font-semibold">MÁQUINA</th>
-              <th className="p-3 font-semibold w-[360px]">DESCRIPCIÓN</th>
-              <th className="p-3 font-semibold">MATERIAL</th>
-              <th className="p-3 font-semibold">ESTADO</th>
-              <th className="p-3 text-right font-semibold">ABONO</th>
-              <th className="p-3 text-right font-semibold">PAGO FINAL</th>
-              <th className="p-3 text-right font-semibold">COSTO FINAL</th>
-              <th className="p-3 font-semibold">FECHA</th>
+              <SortableTh label="CÓDIGO" k="code" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortableTh label="CLIENTE" k="client" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortableTh label="TELÉFONO" k="phone" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortableTh label="MÁQUINA" k="machine" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortableTh label="DESCRIPCIÓN" k="description" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="w-[360px]" />
+              <SortableTh label="MATERIAL" k="material" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortableTh label="ESTADO" k="status" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <SortableTh label="ABONO" k="abono" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortableTh label="PAGO FINAL" k="finalPayment" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortableTh label="COSTO FINAL" k="finalCost" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
+              <SortableTh label="FECHA" k="date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             </tr>
           </thead>
 

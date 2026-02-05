@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import ServicesTable, { ServiceRow } from "../../../components/admin/ServicesTable";
+import ServicesTable, { ServiceRow, SortDir, SortKey } from "../../../components/admin/ServicesTable";
 
 function formatDateDDMMYYYY(dateStr: string) {
   const [yyyy, mm, dd] = String(dateStr).split("-");
@@ -16,6 +16,7 @@ function mapDbToRow(s: any): ServiceRow {
   const finalPaymentRaw = s.pago_final;
   const finalPaymentFromDb = Number(finalPaymentRaw);
   const finalPaymentFallback = finalCost - abono;
+  const rawDate = String(s.fecha ?? "");
   return {
     code: s.code,
     client: s.cliente,
@@ -29,7 +30,8 @@ function mapDbToRow(s: any): ServiceRow {
     finalCost: Number.isFinite(finalCost) ? finalCost : 0,
     finalPaid: Boolean(s.costo_final_pagado),
     finalPayment: Number.isFinite(finalPaymentFromDb) ? finalPaymentFromDb : (Number.isFinite(finalPaymentFallback) ? finalPaymentFallback : 0),
-    date: formatDateDDMMYYYY(s.fecha),
+    date: formatDateDDMMYYYY(rawDate),
+    dateRaw: rawDate,
   };
 }
 
@@ -42,6 +44,10 @@ export default function HistorialPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // ✅ ordenamiento (por defecto: fecha desc)
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   // ✅ selección
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
@@ -127,8 +133,70 @@ export default function HistorialPage() {
 
   // Filas paginadas (solo para mostrar en la tabla, pero cargamos más con scroll)
   const displayedRows = useMemo(() => {
-    return rows;
-  }, [rows]);
+    const dir = sortDir === "asc" ? 1 : -1;
+
+    const toNumber = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : NaN;
+    };
+
+    const toTime = (raw: unknown) => {
+      const s = String(raw ?? "");
+      const t = Date.parse(s);
+      return Number.isFinite(t) ? t : NaN;
+    };
+
+    const cmp = (a: ServiceRow, b: ServiceRow) => {
+      // missing always last
+      const missingA =
+        sortKey === "date"
+          ? !String(a.dateRaw ?? "").trim()
+          : (a as any)[sortKey] === null || (a as any)[sortKey] === undefined || String((a as any)[sortKey] ?? "").trim() === "";
+      const missingB =
+        sortKey === "date"
+          ? !String(b.dateRaw ?? "").trim()
+          : (b as any)[sortKey] === null || (b as any)[sortKey] === undefined || String((b as any)[sortKey] ?? "").trim() === "";
+      if (missingA && missingB) return 0;
+      if (missingA) return 1;
+      if (missingB) return -1;
+
+      if (sortKey === "abono" || sortKey === "finalCost" || sortKey === "finalPayment") {
+        const av = toNumber((a as any)[sortKey]);
+        const bv = toNumber((b as any)[sortKey]);
+        if (Number.isNaN(av) && Number.isNaN(bv)) return 0;
+        if (Number.isNaN(av)) return 1;
+        if (Number.isNaN(bv)) return -1;
+        return (av - bv) * dir;
+      }
+
+      if (sortKey === "date") {
+        const av = toTime(a.dateRaw);
+        const bv = toTime(b.dateRaw);
+        if (Number.isNaN(av) && Number.isNaN(bv)) return 0;
+        if (Number.isNaN(av)) return 1;
+        if (Number.isNaN(bv)) return -1;
+        return (av - bv) * dir;
+      }
+
+      const as = String((a as any)[sortKey] ?? "");
+      const bs = String((b as any)[sortKey] ?? "");
+      const c = as.localeCompare(bs, "es", { sensitivity: "base", numeric: true });
+      return c * dir;
+    };
+
+    return [...rows].sort(cmp);
+  }, [rows, sortKey, sortDir]);
+
+  function handleSort(k: SortKey) {
+    setSortKey((prevKey) => {
+      if (prevKey !== k) {
+        setSortDir("asc");
+        return k;
+      }
+      setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
+      return prevKey;
+    });
+  }
 
   // ✅ selección fila
   function toggleRow(code: string) {
@@ -177,6 +245,9 @@ export default function HistorialPage() {
         currentPage={1}
         totalPages={1}
         totalRecords={rows.length}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={handleSort}
       />
 
       {/* Target para scroll infinito */}
